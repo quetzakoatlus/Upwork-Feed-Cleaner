@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Upwork Insight Pro
+// @name         Upwork Insight - Unified (v13.11 - UI Fixes)
 // @namespace    http://tampermonkey.net/
-// @version      13.13
-// @description  A powerful, all-in-one userscript that enhances the Upwork "Search" and "Job Feed" experience. It provides real-time client statistics, advanced filtering (by country, budget, proposals), and integrates Google Gemini AI to analyze job descriptions instantly.
+// @version      13.11
+// @description  Fixed checkbox rendering issue by excluding it from global input styles.
 // @author       You
 // @match        https://www.upwork.com/nx/search/jobs/*
 // @match        https://www.upwork.com/ab/search/jobs/*
@@ -48,8 +48,8 @@
     const TIMING = {
         SCAN_MIN_MS: 2000,
         SCAN_MAX_MS: 3000,
-        REACTION_MIN_MS: 100,
-        REACTION_MAX_MS: 500,
+        REACTION_MIN_MS: 200,
+        REACTION_MAX_MS: 400,
         HOVER_EXPAND_MS: 1000,
         UI_BUFFER_MS: 50
     };
@@ -57,7 +57,7 @@
     // --- DEFAULTS ---
     const DEFAULTS = {
         API_KEY: '',
-        MIN_HOURLY: 35,
+        MIN_HOURLY: 14,
         MIN_FIXED: 100,
         TH_HOURLY_GOOD: 35,
         TH_HOURLY_BAD: 20,
@@ -122,28 +122,22 @@
                 #ui-floating-panel.visible { display: flex; }
                 .ui-drag-handle { background: var(--ui-bg-input); padding: 14px; cursor: move; font-size: 11px; font-weight: 800; color: var(--ui-btn-bg); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--ui-border); }
                 .ui-panel-scroll { padding: 0; overflow-y: auto; display: flex; flex-direction: column; }
+                details { border-bottom: 1px solid var(--ui-border); }
+                details:last-of-type { border-bottom: none; }
+                summary { padding: 12px 15px; cursor: pointer; font-size: 11px; font-weight: 900; color: var(--ui-text-muted); display: flex; justify-content: space-between; letter-spacing: 0.5px; }
+                .ui-acc-content { padding: 15px; border-top: 1px solid var(--ui-border); }
+                label { font-size: 10px; color: var(--ui-text-muted); font-weight: 800; margin-bottom: 5px; display: block; letter-spacing: 0.5px; }
 
-                /* SCOPED STYLES TO #ui-floating-panel */
-                #ui-floating-panel details { border-bottom: 1px solid var(--ui-border); }
-                #ui-floating-panel details:last-of-type { border-bottom: none; }
-                #ui-floating-panel summary { padding: 12px 15px; cursor: pointer; font-size: 11px; font-weight: 900; color: var(--ui-text-muted); display: flex; justify-content: space-between; letter-spacing: 0.5px; }
-                #ui-floating-panel .ui-acc-content { padding: 15px; border-top: 1px solid var(--ui-border); }
-                #ui-floating-panel label { font-size: 10px; color: var(--ui-text-muted); font-weight: 800; margin-bottom: 5px; display: block; letter-spacing: 0.5px; }
-
-                /* Scoped Inputs */
-                #ui-floating-panel input:not([type="checkbox"]),
-                #ui-floating-panel textarea,
-                #ui-floating-panel select { background: var(--ui-bg-input); border: 1px solid var(--ui-border); color: var(--ui-text-main); border-radius: 6px; padding: 10px; font-size: 11px; width: 100%; box-sizing: border-box; }
-
-                #ui-floating-panel input:focus,
-                #ui-floating-panel textarea:focus { border-color: var(--ui-btn-bg); outline: none; }
-                #ui-floating-panel textarea { resize: none; overflow-y: hidden; min-height: 40px; font-family: sans-serif; line-height: 1.4; transition: height 0.1s; }
+                /* --- FIX: Only target text/number inputs, NOT checkboxes --- */
+                input:not([type="checkbox"]), textarea, select { background: var(--ui-bg-input); border: 1px solid var(--ui-border); color: var(--ui-text-main); border-radius: 6px; padding: 10px; font-size: 11px; width: 100%; box-sizing: border-box; }
+                input:focus, textarea:focus { border-color: var(--ui-btn-bg); outline: none; }
+                textarea { resize: none; overflow-y: hidden; min-height: 40px; font-family: sans-serif; line-height: 1.4; transition: height 0.1s; }
 
                 .ui-btn-save { background: var(--ui-btn-bg); color: var(--ui-btn-text); border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; width: 100%; margin: 15px 0; letter-spacing: 0.5px; }
 
                 /* CUSTOM TOOLTIPS */
                 [data-tooltip] { position: relative; cursor: help; }
-                [data-tooltip]:hover::after { content: attr(data-tooltip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-5px); background: #000; color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 10px; font-weight: 500; white-space: pre-wrap; width: 200px; text-align: center; z-index: 1000000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #333; line-height: 1.4; pointer-events: none; }
+                [data-tooltip]:hover::after { content: attr(data-tooltip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-5px); background: #000; color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 10px; font-weight: 500; white-space: pre-wrap; width: 200px; text-align: left; z-index: 1000000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #333; line-height: 1.4; pointer-events: none; }
                 [data-tooltip]:hover::before { content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(5px); border: 5px solid transparent; border-top-color: #000; pointer-events: none; }
 
                 .ui-is-collapsed { border: 1px dashed var(--ui-border) !important; opacity: 0.7; margin-bottom: 10px !important; padding-bottom: 0 !important; height: auto !important; overflow: hidden !important; }
@@ -158,6 +152,7 @@
                 .ui-card span { font-size: 8px; color: rgba(255,255,255,0.95); font-weight: bold; display: block; margin-top: 3px; letter-spacing: 0.3px; }
                 .ui-ai-row { background: rgba(37, 99, 235, 0.1); border: 1px solid var(--c-blue); border-radius: 8px; padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
 
+                /* --- FIX: Clean Checkbox Wrapper --- */
                 .ui-checkbox-wrapper { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer; font-size: 11px; font-weight: bold; color: var(--ui-text-muted); }
                 .ui-checkbox-wrapper input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; accent-color: var(--ui-btn-bg); transform: scale(1.1); }
             `;
@@ -195,7 +190,7 @@
 
             panel.innerHTML = `
                 <div class="ui-drag-handle">
-                    <span>UPWORK UNIFIED v13.13</span>
+                    <span>UPWORK UNIFIED v13.11</span>
                     <div style="display:flex; gap:12px; align-items:center;">
                         <span id="ui-theme-icon" style="cursor:pointer;">${SETTINGS.theme === 'dark' ? '🌙' : '☀️'}</span>
                         <span id="ui-panel-hide-btn" style="cursor:pointer; font-size:16px;">×</span>
